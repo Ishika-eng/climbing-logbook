@@ -2,7 +2,7 @@ import { DEV_USER } from "../scripts/lib/dev-session.mjs";
 import { OWNED_ORIGIN, ownedRouteUrl } from "./owned-route-url.js";
 import { expect, test } from "./owner.js";
 
-test("renders the shared chrome, no discipline picker, and the My account link/username", async ({ page, owner }) => {
+test("renders the shared chrome, no discipline picker, and the My Account link/username", async ({ page, owner }) => {
   await page.goto(owner.url("/account"));
 
   await expect(page.locator("climbing-header [data-brand-name]")).toHaveText("Climbing Logbook");
@@ -72,7 +72,7 @@ test("the Check our beta row links to its sub-page and shows the saved status", 
   const row = page.locator("#beta-row");
   await expect(row).toBeVisible();
   await expect(row).toHaveAttribute("href", `/${owner.username}/account/beta`);
-  await expect(page.locator("#beta-status")).toHaveText("You're enrolled in the beta.");
+  await expect(page.locator("#beta-status")).toHaveText("You're enrolled in Check our beta.");
 });
 
 test("groups the hub into Account and Settings, then Data and the Danger zone (#1457)", async ({ page, owner }) => {
