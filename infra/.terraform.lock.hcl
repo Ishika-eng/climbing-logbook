@@ -1,11 +1,22 @@
-# This file is maintained automatically by "terraform init".
+# This file is maintained automatically by "tofu init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/betterstackhq/better-uptime" {
+provider "registry.opentofu.org/betterstackhq/better-uptime" {
   version     = "0.22.4"
   constraints = "~> 0.22"
   hashes = [
+    "h1:+IR8EOvFJVIpdWO/8Gjo2n2Ue7Fa+y/4aGH8WK9GZVw=",
+    "h1:+yXidguGXOXdJgOFG+B8BesrhRQLUcKE7kFePFssPqQ=",
+    "h1:4H4h/IM1W/Hxeqk4fiPWBs7arBLepgRqqU/FwXQLPf0=",
+    "h1:9WzfypneZL+l3yGyjrivbzWTLN+2CcyAThyeITqGGK8=",
+    "h1:NPd1pk9V9peTKg81OB8ISxPScRRdd2AoiwTkUSMabUw=",
+    "h1:ecdtqHVOJCiXGJJh/pO/Rd7+sjpFm6CFW2/bRvlBfUM=",
     "h1:iWTlnOOfnL/JDZfYcL8tacVTpQjjNJ/Y5C9UrbXerpM=",
+    "h1:kDnlHpHH4gE4pVkjCMVzzSG80qxnHZ7tpipODLFwbEA=",
+    "h1:od9oTFAjMT3CzIY/jcI/Wa/7Uxh5q1lEUOUyfJ2SyuE=",
+    "h1:oltz/qXHck9zWZgXJD44MFCmIJ7QplgVCH11qbrlGzA=",
+    "h1:vg88zSbIQA+0/ZF6kOsHwjoPG0/eTHFrU5Q0khJge/c=",
+    "h1:w2aF8Ho9zWfIa6bK6Yw5/pRXb9UO8wng5IBmzX0c5m0=",
     "zh:11ce70a988b6851290847fa1cfd823cce21786d63fda8d0f189fe890852af33b",
     "zh:593e932e8d8e690b646a84cc1ec8ddb97de0594158d81c832263ed5e454c7f14",
     "zh:673b4e9f9060164424ccc45c9660a6b65b5cdb1e8593ca3acfb4e30a6c42c0a4",
@@ -21,11 +32,18 @@ provider "registry.terraform.io/betterstackhq/better-uptime" {
   ]
 }
 
-provider "registry.terraform.io/cloudflare/cloudflare" {
+provider "registry.opentofu.org/cloudflare/cloudflare" {
   version     = "5.21.1"
   constraints = "~> 5.0"
   hashes = [
+    "h1:0mY28ndURk1ft6Xgh+BJ8v6hM0+KQqWYS32NAJ/ffMo=",
+    "h1:2gZZ/mcfc1aQmgiFpQ5JH69tamBLO76Iw8TaQZpeWM4=",
+    "h1:6m7m8cPUwqoCldfIxJRCYdhHTZvdIPwtUObaPKWnZH8=",
+    "h1:JxR20UmUG+tZoocOFfOHy1bpd7IiC2lyvxJU45U9KEY=",
+    "h1:Lh5LHSNKoKwCx4F/YlRjoLZ+jZLxnoxEfOMzUX9n4zg=",
+    "h1:gNF1Sro3G9nXhtdkitXwDVKxI1jpBAf8KPv+Y4kAJwk=",
     "h1:hU72otEs26Wx6tcJD9igX6I/BQtVgeRuaIe3s/hn6bQ=",
+    "h1:iWJb0lHfVWmCJQSyroXOT8zQlFOT8k1caHcfaooG5wk=",
     "zh:049719425b8be43d9d4f0c208217aca0baa22374f061d7ff92f02563490f649c",
     "zh:0a8a3c1b26680b437fe9e7910ca81e532d36f8efacfb14f45690b6a779856993",
     "zh:32b61f80892243f7ab8e453fa038c1f3e2aac733ccb98307c2cfe798b2793b32",
