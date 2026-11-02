@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { SevereServiceError } from "webdriverio";
 import globalSetup from "./e2e/global-setup.js";
 import { SHARED_SPEC_NAMES } from "./e2e/shared-specs.js";
+import { rideOutPageNavigations } from "./e2e/wdio-hooks.js";
 
 const BASE_URL = "http://localhost:8787";
 const SERVER_COMMAND =
@@ -35,16 +36,19 @@ function stopServer() {
 const BROWSERS = {
   chrome: {
     browserName: "chrome",
+    "wdio:experimentalBiDiCommands": true,
     browserVersion: "stable",
-    "goog:chromeOptions": { args: ["--headless=new", "--no-sandbox"] },
+    "goog:chromeOptions": { args: ["--headless=new", "--no-sandbox", "--hide-scrollbars"] },
   },
   firefox: {
     browserName: "firefox",
+    "wdio:experimentalBiDiCommands": true,
     browserVersion: "stable",
     "moz:firefoxOptions": {
       args: ["-headless"],
       prefs: {
         "ui.prefersReducedMotion": 1,
+        "ui.useOverlayScrollbars": 1,
         "security.webauth.webauthn_enable_softtoken": true,
         "security.webauth.webauthn_enable_usbtoken": false,
       },
@@ -73,7 +77,12 @@ export const config = {
   logLevel: "warn",
   framework: "mocha",
   reporters: ["spec"],
-  mochaOpts: { timeout: 60000 },
+  mochaOpts: {
+    timeout: 60000,
+    require: ["./e2e/wdio-hooks.js", "./e2e/wdio-matchers.js"],
+    parallelMode: "userContexts",
+    maxParallelContexts: shared ? 1 : Number(process.env.E2E_CONTEXTS ?? 1),
+  },
   async onPrepare() {
     if (await answers(`${BASE_URL}/login/`)) {
       if (process.env.CI) throw new SevereServiceError(`Something is already serving ${BASE_URL}; stop it first`);
@@ -92,6 +101,7 @@ export const config = {
     }
     await globalSetup();
   },
+  before: rideOutPageNavigations,
   onComplete() {
     stopServer();
   },
