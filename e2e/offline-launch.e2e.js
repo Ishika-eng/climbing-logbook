@@ -12,7 +12,7 @@ import {
   waitForPath,
   waitForUrl,
 } from "./wdio-browser.js";
-import { signInDevUser } from "./wdio-owner.js";
+import { devUserAsAthlete, signInDevUser } from "./wdio-owner.js";
 
 const ORIGIN = "http://my.localhost:8787";
 const logPath = `/${DEV_USER.username}/log`;
@@ -70,6 +70,15 @@ async function recordWorkerRequests() {
 const BROWSER_ICONS = ["/-/favicon-", "/-/apple-touch-icon"];
 const isBrowserIcon = path => BROWSER_ICONS.some(icon => path.startsWith(icon));
 
+// The scripts and stylesheets a cached shell names, for pages a test can't stay on long enough to watch load.
+const cachedShellAssets = shell =>
+  browser.execute(async shell => {
+    const response = await caches.match(shell);
+    if (!response) return [];
+    const html = await response.text();
+    return [...html.matchAll(/(?:src|href)="(\/-\/[^"]+)"/g)].map(match => match[1]);
+  }, shell);
+
 const navigationFromWorker = () =>
   browser.execute(() => performance.getEntriesByType("navigation")[0].deliveryType === "cache-storage");
 
@@ -96,6 +105,7 @@ describe("offline launch", () => {
 
   // Offline emulation misses the worker's own fetches, so check its cache as installed, before other pages add to it.
   it("after visiting only /log, everything every owner page loads is already in the worker's cache", async () => {
+    await devUserAsAthlete();
     await browser.addInitScript(() => performance.setResourceTimingBufferSize(10000));
     await browser.url(ownedRouteUrl(DEV_USER.username, "/log"));
     await waitForPath(logPath);
@@ -104,10 +114,18 @@ describe("offline launch", () => {
 
     // Online-only by design: the API and map data.
     const onlineOnly = ["/-/api/", "/-/world-map-"];
+    // A synced, set-up user is sent on from these to the log.
+    const redirectsAway = ["sync", "welcome"];
     const missing = [];
     for (const [ownerPage, shell] of Object.entries(SHELL_PATHS)) {
       if (!cached.includes(shell)) missing.push(shell);
+      if (redirectsAway.includes(ownerPage)) {
+        for (const path of await cachedShellAssets(shell))
+          if (!cached.includes(path)) missing.push(`${path} (${ownerPage})`);
+        continue;
+      }
       await browser.url(ownedRouteUrl(DEV_USER.username, `/${ownerPage}`));
+      await waitForPath(`/${DEV_USER.username}/${ownerPage}`);
       await expect($("#header-menu-btn")).toExist({ message: ownerPage });
       await settle();
       const loaded = await browser.execute(() =>
