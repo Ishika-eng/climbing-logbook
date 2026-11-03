@@ -8,7 +8,19 @@ const PAGE_REPLACED =
 
 // Playwright rides out the page's own redirects and reloads, which WebDriver BiDi reports as errors,
 // and waits for an element to be actionable before clicking it.
+// A mocha timeout doesn't say where a test stuck, so a failed test prints the last commands it sent.
+const recentCommands = [];
+function remember(line) {
+  recentCommands.push(`${new Date().toISOString()} ${line}`);
+  if (recentCommands.length > 30) recentCommands.shift();
+}
+
 export function actLikePlaywright() {
+  // Cookies and mocked session responses carry session tokens, which shouldn't reach CI logs.
+  const secret = command => command.startsWith("storage") || command === "networkProvideResponse";
+  const shown = (command, value) => (secret(command) ? "" : JSON.stringify(value ?? "").slice(0, 300));
+  browser.on("command", ({ command, body }) => remember(`> ${command} ${shown(command, body)}`));
+  browser.on("result", ({ command, result }) => remember(`< ${command} ${shown(command, result)}`));
   browser.overwriteCommand(
     "click",
     async function (click, options) {
@@ -65,11 +77,14 @@ export async function screenshotFailure(test) {
 // Playwright's Desktop Chrome viewport, and the shared specs run as the seeded dev user, as its shared project does.
 export const mochaHooks = {
   async beforeEach() {
+    recentCommands.length = 0;
     await browser.setViewport({ width: 1280, height: 720 });
     if (process.env.E2E_PROJECT === "shared") await signInDevUser();
   },
   async afterEach() {
-    await screenshotFailure(this.currentTest ?? this.test);
+    const test = this.currentTest ?? this.test;
+    if (test?.state === "failed") console.log(`Last commands before the failure:\n${recentCommands.join("\n")}`);
+    await screenshotFailure(test);
     await cleanUpThisTest();
   },
 };

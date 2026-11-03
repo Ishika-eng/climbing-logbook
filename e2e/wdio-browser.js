@@ -97,27 +97,37 @@ export async function waitUntilActionable(element) {
   await browser.waitUntil(() =>
     browser.execute(
       () =>
-        new Promise(resolve =>
+        // Capped as WebdriverIO's own stability check is: a frame that never comes would hang waitUntil for good.
+        new Promise(resolve => {
+          const settled = () =>
+            resolve(!document.getAnimations().some(a => a instanceof CSSTransition && a.playState === "running"));
+          const timer = setTimeout(settled, 100);
           requestAnimationFrame(() =>
-            requestAnimationFrame(() =>
-              resolve(!document.getAnimations().some(a => a instanceof CSSTransition && a.playState === "running")),
-            ),
-          ),
-        ),
+            requestAnimationFrame(() => {
+              clearTimeout(timer);
+              settled();
+            }),
+          );
+        }),
     ),
   );
   // Looked up afresh each time, as a Playwright locator is: the page may have redrawn it meanwhile.
   let current = await requery(element);
   await current.waitForStable();
-  await current.scrollIntoView({ block: "center" });
   await browser.waitUntil(
     async () => {
       current = await requery(element);
       return browser.execute(target => {
         if (!target.isConnected) return false;
-        const box = target.getBoundingClientRect();
-        const hit = target.getRootNode().elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
-        return target === hit || target.contains(hit);
+        const isHit = () => {
+          const box = target.getBoundingClientRect();
+          const hit = target.getRootNode().elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+          return target === hit || target.contains(hit);
+        };
+        if (isHit()) return true;
+        // Scrolled again on every try, as Playwright does: the page may have moved it since.
+        target.scrollIntoView({ block: "center", inline: "center" });
+        return isHit();
       }, current);
     },
     { timeoutMsg: `${element.selector} never came out from under whatever covers it` },
