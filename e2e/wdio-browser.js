@@ -273,3 +273,17 @@ export async function recordNavigations() {
   afterThisTest(() => browser.off("browsingContext.navigationStarted", listener));
   return urls;
 }
+
+// Takes this test's tab offline. Unlike Playwright's setOffline, the service worker's own fetches still reach the
+// network: neither browser applies BiDi network conditions to workers. Returns a function that brings the connection back.
+export async function goOffline() {
+  const restore = await browser.emulate("onLine", false);
+  let online = false;
+  const goOnline = async () => {
+    if (online) return;
+    online = true;
+    await restore();
+  };
+  afterThisTest(goOnline);
+  return goOnline;
+}
