@@ -1,13 +1,29 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { browser } from "@wdio/globals";
-import { currentContext } from "./wdio-browser.js";
+import { cleanUpThisTest, currentContext, waitUntilActionable } from "./wdio-browser.js";
 import { signInDevUser } from "./wdio-owner.js";
 
 const PAGE_REPLACED =
-  /navigation canceled by concurrent navigation|Cannot find context with specified id|does not belong to the document/;
+  /navigation canceled by concurrent navigation|Cannot find context with specified id|does not belong to the document|belongs to different document/;
 
-// Playwright rides out the page's own redirects and reloads; WebDriver BiDi reports them as errors.
-export function rideOutPageNavigations() {
+// Playwright rides out the page's own redirects and reloads, which WebDriver BiDi reports as errors,
+// and waits for an element to be actionable before clicking it.
+export function actLikePlaywright() {
+  browser.overwriteCommand(
+    "click",
+    async function (click, options) {
+      if (options) return click(options);
+      const current = await waitUntilActionable(this);
+      return current.elementId === this.elementId ? click() : current.click({ button: "left" });
+    },
+    { attachToElement: true },
+  );
+  // WebdriverIO opens the next test's window while this one runs, taking focus, and Firefox only turns keys like
+  // Enter into clicks in a focused window.
+  browser.overwriteCommand("keys", async (keys, value) => {
+    await browser.browsingContextActivate({ context: currentContext() });
+    return keys(value);
+  });
   browser.overwriteCommand("url", async (url, path, options) => {
     try {
       return await url(path, options);
@@ -35,7 +51,10 @@ export async function screenshotFailure(test) {
     "-",
   );
   try {
-    const { data } = await browser.browsingContextCaptureScreenshot({ context: currentContext() });
+    const { data } = await Promise.race([
+      browser.browsingContextCaptureScreenshot({ context: currentContext() }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("the page didn't paint within 5s")), 5000)),
+    ]);
     mkdirSync("test-results/wdio", { recursive: true });
     writeFileSync(`test-results/wdio/${name.slice(0, 150)}.png`, Buffer.from(data, "base64"));
   } catch (error) {
@@ -51,5 +70,6 @@ export const mochaHooks = {
   },
   async afterEach() {
     await screenshotFailure(this.currentTest ?? this.test);
+    await cleanUpThisTest();
   },
 };
