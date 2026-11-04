@@ -1,5 +1,5 @@
 import { $, browser, expect } from "@wdio/globals";
-import { boundingBox, browserFetch, tap, waitForPath, waitForUrl } from "./wdio-browser.js";
+import { boundingBox, browserFetch, NAVIGATION_TIMEOUT, tap, waitForPath, waitForUrl } from "./wdio-browser.js";
 import { claimOwner } from "./wdio-owner.js";
 
 const DEMO = "http://my.localhost:8787/intermediatedemo";
@@ -114,7 +114,8 @@ describe("tour", () => {
   it("the tour doesn't run on your own logbook", async () => {
     const owner = await claimOwner();
     await browser.url(owner.url("/log?tour=1"));
-    await expect($("#add-btn")).toBeDisplayed();
+    // A new owner's first visit goes through /sync first.
+    await expect($("#add-btn")).toBeDisplayed({ wait: NAVIGATION_TIMEOUT });
     await expect(dialog()).not.toExist();
   });
 
