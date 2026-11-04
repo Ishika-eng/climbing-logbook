@@ -3,6 +3,8 @@ import { browser } from "@wdio/globals";
 import { cleanUpThisTest, currentContext, startInFreshWindow, waitUntilActionable } from "./wdio-browser.js";
 import { signInDevUser } from "./wdio-owner.js";
 
+const LOOKUP_ANSWER_MS = 5000;
+const LOOKUP_UNANSWERED = `The browser didn't answer an element lookup within ${LOOKUP_ANSWER_MS / 1000}s`;
 const PAGE_REPLACED =
   /navigation canceled by concurrent navigation|Cannot find context with specified id|does not belong to the document|belongs to different document/;
 
@@ -44,12 +46,18 @@ export function actLikePlaywright() {
       await browser.waitUntil(() => browser.execute(() => document.readyState === "complete"));
     }
   });
+  // Firefox in CI has left a lookup unanswered for good (#1636), so one gets a few seconds before it's sent again.
   browser.overwriteCommand("browsingContextLocateNodes", async (locateNodes, params) => {
     for (let attempt = 1; ; attempt++) {
       try {
-        return await locateNodes(params);
+        let timer;
+        const unanswered = new Promise((_, reject) => {
+          timer = setTimeout(() => reject(new Error(LOOKUP_UNANSWERED)), LOOKUP_ANSWER_MS);
+        });
+        return await Promise.race([locateNodes(params), unanswered]).finally(() => clearTimeout(timer));
       } catch (error) {
-        if (attempt === 10 || !PAGE_REPLACED.test(error.message)) throw error;
+        const retry = PAGE_REPLACED.test(error.message) || error.message === LOOKUP_UNANSWERED;
+        if (attempt === 10 || !retry) throw error;
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
