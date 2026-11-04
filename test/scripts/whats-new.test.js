@@ -7,6 +7,7 @@ import {
   hasWhatsNewHeading,
   readHistory,
   readTaggedReleases,
+  parseTags,
   tagMessage,
   whatsNew,
   whatsNewFromPrBody,
@@ -38,6 +39,21 @@ describe("whatsNewFromPrBody (#917)", () => {
     expect(whatsNewFromPrBody("Closes #1\n\n## What's new\n\n<!-- comment -->\n\n## Definition of done\n")).toEqual([]);
     expect(whatsNewFromPrBody("Closes #1")).toEqual([]);
     expect(whatsNewFromPrBody(undefined)).toEqual([]);
+  });
+
+  it("stops at the PR's attribution footer when What's new is the last section", () => {
+    expect(
+      whatsNewFromPrBody(
+        "## What's new\n\nA change.\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n",
+      ),
+    ).toEqual(["A change."]);
+  });
+
+  it.each([
+    ["a horizontal rule", "---\nSigned off."],
+    ["the footer without its emoji", "Generated with [Claude Code](https://claude.com/claude-code)"],
+  ])("stops at %s after a last What's new section", (_, after) => {
+    expect(whatsNewFromPrBody(`## What's new\n\nA change.\n\n${after}\n`)).toEqual(["A change."]);
   });
 
   it("skips a comment that spans several lines", () => {
@@ -164,7 +180,24 @@ describe("check-whats-new.mjs (#1504)", () => {
     expect(run("release: patch", withHeading).status).toBe(0);
   });
 
+  it.each(["Nothing user-facing.", "None", "- n/a", "Nothing"])(
+    "fails a placeholder instead of an empty section: %j",
+    line => {
+      const result = run("release: patch", `${withHeading}\n${line}\n\n## Definition of done\n`);
+      expect(result.status).toBe(1);
+      expect(result.stdout).toContain("empty");
+    },
+  );
+
   it("doesn't check release: none", () => {
     expect(run("release: none", "Closes #1").status).toBe(0);
+  });
+});
+
+describe("parseTags", () => {
+  it("drops an attribution footer that an earlier release wrote into its tag", () => {
+    const output =
+      "v2.140.4\u00002026-10-27\u0000A change.\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\u0000\n";
+    expect(parseTags(output)).toEqual([{ version: "v2.140.4", date: "2026-10-27", changes: ["A change."] }]);
   });
 });
